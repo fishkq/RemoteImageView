@@ -28,63 +28,22 @@
 
 import SwiftUI
 
-public struct RemoteImageView<Content: View>: View {
+public class RemoteImageFetcher: ObservableObject {
+    @Published var imageData = Data()
+    let url: URL
     
-    @ObservedObject var imageFetcher: RemoteImageFetcher
-    
-    var content: (_ image: Image) -> Content
-    let placeHolder: Image
-    
-    @State var imageData: Data = Data()
-//    @State var previousURL: URL? = nil
-    
-    public init(placeHolder: Image, imageFetcher: RemoteImageFetcher, content: @escaping (_ image: Image) -> Content) {
-        self.placeHolder = placeHolder
-        self.imageFetcher = imageFetcher
-        self.content = content
+    public init(url: URL) {
+        self.url = url
+        print("RemoteImageFetcher init, url: \(url)")
     }
-
-    public var body: some View {
-        let _ = print("RemoteImageView body")
-//        let _ = Self._printChanges()
-        
-        DispatchQueue.main.async {
-            let _ = print("body async")
-//            if (self.previousURL != self.imageFetcher.url) {
-//                self.previousURL = self.imageFetcher.url
-//              }
-
-              if (!self.imageFetcher.imageData.isEmpty) {
-                self.imageData = self.imageFetcher.imageData
-              }
-        }
-        
-//        let _ = print("body async after")
-
-        let uiImage = imageData.isEmpty ? nil : UIImage(data: imageData)
-        let image = uiImage != nil ? Image(uiImage: uiImage!) : nil;
-        
-        
-        
-        return ZStack(content: {
-            if image != nil {
-                content(image!)
-            } else {
-                content(placeHolder)
+    
+    public func fetch() {
+        URLSession.shared.dataTask(with: url, completionHandler: { (data, _, _) in
+            guard let data = data else { return }
+            DispatchQueue.main.async {
+                print("fetch async")
+                self.imageData = data
             }
-        })
-        .onAppear(perform: loadImage)
-    }
-    
-    private func loadImage() {
-
-        imageFetcher.fetch()
-    }
-}
-
-struct RemoteImageView_Previews: PreviewProvider {
-    static var previews: some View {
-//        RemoteImageView()
-        Text("Hello")
+        }).resume()
     }
 }
